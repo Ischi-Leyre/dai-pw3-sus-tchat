@@ -1,7 +1,7 @@
 # API – JitSUSmon Chat
 Protocol: HTTPS and JSON.
 Data are persisted server-side in `data/users.json` and `data/messages.json`.
-A simple authentication uses a `user` cookie containing the user's ID.
+A simple authentication uses a `session_id` cookie containing the user's ID.
 
 ## Schemas
 - **User**: `{ "userId": number, "username": string }`
@@ -37,7 +37,7 @@ A simple authentication uses a `user` cookie containing the user's ID.
 - `POST /users`
 
 Create a new user.
-After creating a user, the client must log in to obtain the `user` cookie before performing other actions.
+After creating a user, the client must log in to obtain the `session_id` cookie before performing other actions.
 
 #### Request
 The request body must contain a JSON body with the following properties:
@@ -84,8 +84,8 @@ The response body contains a JSON object with the following properties:
 Edit the user with the given ID.
 
 #### Request
-Requires `user` cookie. Only the logged-in user can edit their own information.
->If the `userId` in the URL does not match the `user` cookie, the server returns `403 Forbidden`.
+Requires `session_id` cookie. Only the logged-in user can edit their own information.
+>If the `userId` in the URL does not match the `session_id` cookie, the server returns `403 Forbidden`.
 
 The request body must contain a JSON body with the following properties (one or more):
 - `email` - the new email
@@ -208,16 +208,16 @@ curl -b cookie.txt -X GET https://jitsusmon.duckdns.org/users/1
 Delete the user with the given ID.
 This operation also affects messages, as all messages sent by this user are deleted.
 
-The session cookie (`user`) is also removed.
+The session cookie (`session_id`) is also removed.
 
 #### Request
-Requires `user` cookie.
+Requires `session_id` cookie.
 Only the logged-in user can delete their own account.
->If the `userId` in the URL does not match the `user` cookie, the server returns `403 Forbidden`.
+>If the `userId` in the URL does not match the `session_id` cookie, the server returns `403 Forbidden`.
 
 No additional confirmation is required.
 #### Response
-An empty body, and the `user` cookie is removed.
+An empty body, and the `session_id` cookie is removed.
 
 #### Status codes
 - `204` No Content  - account closed with success
@@ -237,7 +237,7 @@ curl -b cookie.txt -X DELETE https://jitsusmon.duckdns.org/users/1
 ### Login
 - `POST /login`
 
-Authenticate a user. Sets a `user` cookie with the user's ID.
+Authenticate a user. Sets a `session_id` cookie with the user's ID.
 
 #### Request
 Accept a JSON body with the following properties:
@@ -262,9 +262,9 @@ or
 #### Response
 No response body.
 
-On success, a `user` session cookie is set.
+On success, a `session_id` session cookie is set.
 > If the credentials are invalid, no cookie is set.
-> If the user is already logged in (valid `user` cookie), the server returns `400 Bad Request`.
+> If the user is already logged in (valid `session_id` cookie), the server returns `400 Bad Request`.
 
 #### Status codes
 - `204` No Content - success
@@ -287,11 +287,11 @@ Logout the current user.
 
 #### Request
 Empty body.
-Requires a valid `user` session cookie.
+Requires a valid `session_id` session cookie.
 >Requests without this cookie return `401 Unauthorized`.
 
 #### Response
-The response body is empty, and the `user` cookie is removed.
+The response body is empty, and the `session_id` cookie is removed.
 
 #### Status codes
 - `204` No Content - success
@@ -308,10 +308,10 @@ curl -c cookie.txt -X POST https://jitsusmon.duckdns.org/logout
 ### Profile
 - `GET /profile`
 
-Return the currently logged-in user (based on the `user` cookie).
+Return the currently logged-in user (based on the `session_id` cookie).
 
 #### Request
-Requires a valid `user` session cookie.
+Requires a valid `session_id` session cookie.
 >Requests without this cookie return `401 Unauthorized`.
 
 
@@ -345,7 +345,7 @@ curl -c cookie.txt -X GET https://jitsusmon.duckdns.org/profile
 Post a new message as the logged-in user.
 
 #### Request
-Requires a valid `user` session cookie.
+Requires a valid `session_id` session cookie.
 >Requests without this cookie return `401 Unauthorized`.
 
 JSON body:
@@ -388,7 +388,7 @@ curl -b cookie.txt -X POST https://jitsusmon.duckdns.org/messages \
 Edit a message if the requester is the owner.
 
 #### Request
-Requires a valid `user` session cookie.
+Requires a valid `session_id` session cookie.
 > Requests without this cookie return `401 Unauthorized`.
 > If the logged-in user is not the owner of the message, the server returns `403 Forbidden`.
 
@@ -430,10 +430,10 @@ curl -b cookie.txt -X PATCH https://jitsusmon.duckdns.org/messages \
 ### List my messages
 - `GET /messages/mine`
 
-Return all messages of the logged-in user (use of the `user` cookie).
+Return all messages of the logged-in user (use of the `session_id` cookie).
 
 #### Request
-Requires `user` cookie.
+Requires `session_id` cookie.
 > Requests without this cookie return `401 Unauthorized`.
 
 #### Response
@@ -479,7 +479,7 @@ Example:
 - `GET /messages?sinceDate=01-01-2026`
 
 #### Request
-Requires `user` cookie.
+Requires `session_id` cookie.
 >Requests without this cookie return `401 Unauthorized`.
 
 #### Response
@@ -522,7 +522,7 @@ curl -b cookie.txt -X GET https://jitsusmon.duckdns.org/messages?username=Master
 Delete a message if the requester is the owner.
 
 #### Request
-Requires `user` cookie.
+Requires `session_id` cookie.
 
 #### Response
 204 No Content

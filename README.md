@@ -23,12 +23,12 @@ The application exposes an **HTTP/HTTPS API** that allows clients to manage user
 All data are persisted server-side using JSON files (`data/users.json` and `data/messages.json`).
 
 Authentication is handled using a **simple session mechanism based on HTTP cookies**.  
-After a successful login, the server sets a `user` cookie containing the authenticated user HASH (change every login), which is required to access protected endpoints.
+After a successful login, the server sets a `session_id` cookie containing the authenticated user HASH (change every login), which is required to access protected endpoints.
 
 ### Main features
 - **User management (CRUD)**: create, update, list, retrieve and delete users
 - **Message management (CRUD)**: post, edit, list and delete messages
-- **Session-based authentication** using a `user` cookie (`/login`, `/logout`, `/profile`)
+- **Session-based authentication** using a `session_id` cookie (`/login`, `/logout`, `/profile`)
 - API designed to be **easy to test with `curl`** and to demonstrate HTTP concepts
 
 ### Data structure (simplified)
