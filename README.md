@@ -13,23 +13,8 @@
 - [References](#references)
 
 ## Description
-**Project name**: JitSUSmon - Tchat
-Security aspects are intentionally simplified for educational purposes.
-
-JitSUSmon is a small online chat service designed for practical work. It exposes a REST API over HTTPS to manage users and messages. Data is persisted on the server side in JSON files (`data/users.json` and `data/messages.json`).
-
-Main features:
-- User management: creation, renaming, deletion, list.
-- Message management: publication, editing, deletion, list (by user).
-- Lightweight authentication via `user` cookie (user ID) with `login`/`logout` and `profile` endpoints.
-- API designed to be easy to test and extend, ideal for demonstrations and practical work.
-
-Data structure:
-- User: `id`, `name`
-- Message: `id`, `userId`, `content`
 
 **Project name**: JitSUSmon – Chat application
-> Security aspects are intentionally simplified for educational purposes.
 
 JitSUSmon is a small online chat web application developed as part of a practical engineering course.  
 The project focuses on **CRUD operations over HTTP** and on the understanding of how a web API can be designed, documented, deployed and tested using standard tools such as `curl`.
@@ -38,10 +23,7 @@ The application exposes an **HTTP/HTTPS API** that allows clients to manage user
 All data are persisted server-side using JSON files (`data/users.json` and `data/messages.json`).
 
 Authentication is handled using a **simple session mechanism based on HTTP cookies**.  
-After a successful login, the server sets a `user` cookie containing the authenticated user ID, which is required to access protected endpoints.
-
-The full API specification, including endpoints, request/response formats and example `curl` commands, is available in:
-- [`API.md`](./api/API.md)
+After a successful login, the server sets a `user` cookie containing the authenticated user HASH (change every login), which is required to access protected endpoints.
 
 ### Main features
 - **User management (CRUD)**: create, update, list, retrieve and delete users
@@ -49,11 +31,16 @@ The full API specification, including endpoints, request/response formats and ex
 - **Session-based authentication** using a `user` cookie (`/login`, `/logout`, `/profile`)
 - API designed to be **easy to test with `curl`** and to demonstrate HTTP concepts
 
-### Data model (simplified)
-- **User**: `userId`, `username`
+### Data structure (simplified)
+Below are the only fields the user can manage via the API, other fields (e.g., isAdmin, posted_at, modified_at) are managed internally by the server.:
+- **User**: `userId`, `username`, `email`, `password`
 - **Message**: `msgId`, `userId`, `content`
 
-This project prioritizes clarity, simplicity and correctness over advanced security mechanisms, in accordance with the **KISS principle** and the educational objectives of the course.
+The full API specification, including endpoints, request/response formats and example `curl` commands, is available in:
+- [`API.md`](./api/API.md)
+
+> [!NOTE]
+> This project prioritizes clarity, simplicity and correctness over advanced security mechanisms, in accordance with the **KISS principle** and the educational objectives of the course.
 
 
 ## Clone and build
@@ -152,7 +139,7 @@ mvnw.cmd clean package
 
   <div style="margin-top: 1rem;">
     <a href="https://github.com/Ischi-Leyre/dai-pw3-sus-tchat" target="_blank" rel="noopener noreferrer">
-        <img src="documents/images/susjitsumo2.png"
+        <img src="Documents/images/susjitsumo2.png"
              alt="Project logo"
             style="width: 80px; height: 100px; display: block; margin: 0 auto;">
     </a>
