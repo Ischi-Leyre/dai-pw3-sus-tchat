@@ -13,8 +13,35 @@
 - [References](#references)
 
 ## Description
-**Project name**: JitSUSmon - Tchat
-**TODO**: complete the description of the project.
+
+**Project name**: JitSUSmon – Chat application
+
+JitSUSmon is a small online chat web application developed as part of a practical engineering course.  
+The project focuses on **CRUD operations over HTTP** and on the understanding of how a web API can be designed, documented, deployed and tested using standard tools such as `curl`.
+
+The application exposes an **HTTP/HTTPS API** that allows clients to manage users and messages.  
+All data are persisted server-side using JSON files (`data/users.json` and `data/messages.json`).
+
+Authentication is handled using a **simple session mechanism based on HTTP cookies**.  
+After a successful login, the server sets a `session_id` cookie containing the authenticated user HASH (change every login), which is required to access protected endpoints.
+
+### Main features
+- **User management (CRUD)**: create, update, list, retrieve and delete users
+- **Message management (CRUD)**: post, edit, list and delete messages
+- **Session-based authentication** using a `session_id` cookie (`/login`, `/logout`, `/profile`)
+- API designed to be **easy to test with `curl`** and to demonstrate HTTP concepts
+
+### Data structure (simplified)
+Below are the only fields the user can manage via the API, other fields (e.g., isAdmin, posted_at, modified_at) are managed internally by the server.:
+- **User**: `userId`, `username`, `email`, `password`
+- **Message**: `msgId`, `userId`, `content`
+
+The full API specification, including endpoints, request/response formats and example `curl` commands, is available in:
+- [`API.md`](./api/API.md)
+
+> [!NOTE]
+> This project prioritizes clarity, simplicity and correctness over advanced security mechanisms, in accordance with the **KISS principle** and the educational objectives of the course.
+
 
 ## Clone and build
 These following instructions will help you to get a copy of the project up and running on your local machine for development and testing purposes.
@@ -73,6 +100,7 @@ mvnw.cmd clean package
     - Issue template: correction and help for the structure.
     - README: help for the integration HTML code (i.e. footer)
     - Code: generate the Java doc of Class / function.
+    - API: proofreading and check with the example given.
 
 - GitHub Copilot:
     - commit: for the commits made in browsers, name and description
@@ -111,7 +139,7 @@ mvnw.cmd clean package
 
   <div style="margin-top: 1rem;">
     <a href="https://github.com/Ischi-Leyre/dai-pw3-sus-tchat" target="_blank" rel="noopener noreferrer">
-        <img src="documents/images/susjitsumo2.png"
+        <img src="Documents/images/susjitsumo2.png"
              alt="Project logo"
             style="width: 80px; height: 100px; display: block; margin: 0 auto;">
     </a>
