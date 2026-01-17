@@ -295,7 +295,6 @@ The response body is empty, and the `session_id` cookie is removed.
 
 #### Status codes
 - `204` No Content - success
-- `400` Bad Request - invalid body
 - `401` Unauthorized - no user logged in
 
 ##### command line example:
