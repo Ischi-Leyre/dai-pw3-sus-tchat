@@ -1,3 +1,9 @@
 package ch.heigvd.users;
 
-public record User(Integer id, String firstName, String lastName, String email, String password) {}
+public record User(
+        Integer userId,
+        String username,
+        String email,
+        String password,
+        Boolean isAdmin
+) {}

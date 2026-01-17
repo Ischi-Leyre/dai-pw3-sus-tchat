@@ -2,116 +2,185 @@ package ch.heigvd.users;
 
 import io.javalin.http.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class UsersController {
-  private final ConcurrentMap<Integer, User> users;
+    private final ConcurrentMap<Integer, User> users;
+    private final ConcurrentMap<String, Integer> cookies;
 
-  private final AtomicInteger uniqueId = new AtomicInteger(1);
+    private final AtomicInteger uniqueId = new AtomicInteger(1);
 
-  public UsersController(ConcurrentMap<Integer, User> users) {
-    this.users = users;
-  }
-
-  public void create(Context ctx) {
-    User newUser =
-        ctx.bodyValidator(User.class)
-            .check(obj -> obj.firstName() != null, "Missing first name")
-            .check(obj -> obj.lastName() != null, "Missing last name")
-            .check(obj -> obj.email() != null, "Missing email")
-            .check(obj -> obj.password() != null, "Missing password")
-            .get();
-
-    for (User user : users.values()) {
-      if (newUser.email().equalsIgnoreCase(user.email())) {
-        throw new ConflictResponse();
-      }
+    public UsersController(ConcurrentMap<Integer, User> users, ConcurrentMap<String, Integer> cookies) {
+        this.users = users;
+        this.cookies = cookies;
     }
 
-    newUser =
-        new User(
-            uniqueId.getAndIncrement(),
-            newUser.firstName(),
-            newUser.lastName(),
-            newUser.email(),
-            newUser.password());
+    public void create(Context ctx) {
+        // Parse and validate request body
+        User req =
+                ctx.bodyValidator(User.class)
+                        .check(obj -> obj.username() != null, "Missing username")
+                        .check(obj -> obj.email() != null, "Missing email")
+                        .check(obj -> obj.password() != null, "Missing password")
+                        .get();
 
-    users.put(newUser.id(), newUser);
+        // Check for conflicts
+        for (User user : users.values()) {
+            if (req.email().equalsIgnoreCase(user.email()) ||
+            req.username().equalsIgnoreCase(user.username())) {
+                throw new ConflictResponse();
+            }
+        }
 
-    ctx.status(HttpStatus.CREATED);
-    ctx.json(newUser);
-  }
+        // Create the new user
+        User newUser =
+                new User(
+                        uniqueId.getAndIncrement(),
+                        req.username(),
+                        req.email(),
+                        req.password(),
+                        false);
 
-  public void getOne(Context ctx) {
-    Integer id = ctx.pathParamAsClass("id", Integer.class).get();
+        users.put(newUser.userId(), newUser);
 
-    User user = users.get(id);
+        ctx.status(HttpStatus.CREATED);
 
-    if (user == null) {
-      throw new NotFoundResponse();
+        Map<String, Object> res = new HashMap<>();
+        res.put("userId", newUser.userId());
+        res.put("username", newUser.username());
+        res.put("email", newUser.email());
+
+        ctx.json(res);
     }
 
-    ctx.json(user);
-  }
+    public void update(Context ctx) {
+        // session validation
+        String session = ctx.cookie("session_id");
+        if (session == null) {
+            throw new UnauthorizedResponse();
+        }
 
-  public void getMany(Context ctx) {
-    String firstName = ctx.queryParam("firstName");
-    String lastName = ctx.queryParam("lastName");
+        Integer userId = cookies.get(session);
+        if (userId == null) {
+            throw new UnauthorizedResponse();
+        }
 
-    List<User> users = new ArrayList<>();
+        if (!userId.equals(ctx.pathParamAsClass("userId", Integer.class).get())) {
+            throw new ForbiddenResponse("Forbidden: You can only update your own user");
+        }
 
-    for (User user : this.users.values()) {
-      if (firstName != null && !user.firstName().equalsIgnoreCase(firstName)) {
-        continue;
-      }
+        if (!users.containsKey(userId)) {
+            throw new NotFoundResponse();
+        }
 
-      if (lastName != null && !user.lastName().equalsIgnoreCase(lastName)) {
-        continue;
-      }
+        // read body as map and validate allowed fields
+        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        if (body == null || body.isEmpty()) {
+            throw new BadRequestResponse();
+        }
 
-      users.add(user);
+        User existingUser = users.get(userId);
+
+        String newEmail = body.containsKey("email") ? (String) body.get("email") : existingUser.email();
+        String newPassword = body.containsKey("password") ? (String) body.get("password") : existingUser.password();
+
+        for (User user : users.values()) {
+            if (newEmail.equalsIgnoreCase(user.email())) {
+                throw new ConflictResponse("Conflict: Email already in use");
+            }
+        }
+
+        User updateUser =
+                new User(
+                        existingUser.userId(),
+                        existingUser.username(),
+                        newEmail,
+                        newPassword,
+                        existingUser.isAdmin());
+
+        users.replace(userId, updateUser);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("userId", updateUser.userId());
+        res.put("username", updateUser.username());
+        res.put("email", updateUser.email());
+
+        ctx.json(res);
     }
 
-    ctx.json(users);
-  }
+    public void getOne(Context ctx) {
+        // Validate the cookie
+        String session = ctx.cookie("session_id");
+        if (session == null) {
+            throw new UnauthorizedResponse();
+        }
 
-  public void update(Context ctx) {
-    Integer id = ctx.pathParamAsClass("id", Integer.class).get();
+        // Get
+        Integer id = ctx.pathParamAsClass("userId", Integer.class).get();
 
-    if (!users.containsKey(id)) {
-      throw new NotFoundResponse();
+        User user = users.get(id);
+
+        if (user == null) {
+            throw new NotFoundResponse();
+        }
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("userId", user.userId());
+        res.put("username", user.username());
+
+        ctx.json(res);
     }
 
-    User updateUser =
-        ctx.bodyValidator(User.class)
-            .check(obj -> obj.firstName() != null, "Missing first name")
-            .check(obj -> obj.lastName() != null, "Missing last name")
-            .check(obj -> obj.email() != null, "Missing email")
-            .check(obj -> obj.password() != null, "Missing password")
-            .get();
+    public void getMany(Context ctx) {
+        // validate that only 'username' query parameter is present
+        for (String key : ctx.queryParamMap().keySet()) {
+            if (!"username".equals(key)) {
+                throw new BadRequestResponse();
+            }
+        }
 
-    for (User user : users.values()) {
-      if (updateUser.email().equalsIgnoreCase(user.email())) {
-        throw new ConflictResponse();
-      }
+        // validate cookie
+        String session = ctx.cookie("session_id");
+        if (session == null) {
+            throw new UnauthorizedResponse();
+        }
+
+        String username = ctx.queryParam("username");
+
+        List<Map<String, Object>> list = new ArrayList<>();
+
+        for (User user : this.users.values()) {
+            if (username != null && !user.username().equalsIgnoreCase(username)) {
+                continue;
+            }
+
+            Map<String, Object> u = new HashMap<>();
+            u.put("userId", user.userId());
+            u.put("username", user.username());
+            list.add(u);
+        }
+
+        if (list.isEmpty()) {
+            ctx.status(HttpStatus.NO_CONTENT);
+            return;
+        }
+
+        ctx.json(list);
     }
 
-    users.put(id, updateUser);
+    public void delete(Context ctx) {
+        Integer id = ctx.pathParamAsClass("id", Integer.class).get();
 
-    ctx.json(updateUser);
-  }
+        if (!users.containsKey(id)) {
+            throw new NotFoundResponse();
+        }
 
-  public void delete(Context ctx) {
-    Integer id = ctx.pathParamAsClass("id", Integer.class).get();
+        users.remove(id);
 
-    if (!users.containsKey(id)) {
-      throw new NotFoundResponse();
+        ctx.status(HttpStatus.NO_CONTENT);
     }
-
-    users.remove(id);
-
-    ctx.status(HttpStatus.NO_CONTENT);
-  }
 }
