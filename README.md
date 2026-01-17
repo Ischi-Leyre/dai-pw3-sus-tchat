@@ -101,6 +101,7 @@ mvnw.cmd clean package
     - README: help for the integration HTML code (i.e. footer)
     - Code: generate the Java doc of Class / function.
     - API: proofreading and check with the example given.
+    - Main class: help for integretion of ressource with javalin configuration.
 
 - GitHub Copilot:
     - commit: for the commits made in browsers, name and description
