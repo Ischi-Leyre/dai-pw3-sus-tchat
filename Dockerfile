@@ -2,8 +2,6 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 LABEL authors="ischi & leyre"
 
-RUN mkdir /app/data && touch /app/data/users.json && touch /app/data/messages.json
-
 # COPY Repeat for each file that must be present in image
 COPY target/SUS-TEAM-1.0-SNAPSHOT.jar /app/SUS-TEAM.jar
 
