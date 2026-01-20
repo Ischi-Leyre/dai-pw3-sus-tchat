@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class Main {
-    public static final int PORT = 443;
+    public static final int PORT = 8080;
 
     public static void main(String[] args) {
         Javalin app = Javalin.create(config -> {
@@ -31,7 +31,7 @@ public class Main {
 
         // Controllers
         AuthController authController = new AuthController(users, messages,cookies);
-        UsersController usersController = new UsersController(users, cookies);
+        UsersController usersController = new UsersController(users,messages, cookies);
         MessagesController messagesController = new MessagesController(messages, users, cookies);
 
         // Users routes
