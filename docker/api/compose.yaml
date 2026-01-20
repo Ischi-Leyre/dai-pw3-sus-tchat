@@ -1,0 +1,22 @@
+networks:
+  jitsusmon_network:
+    external: true
+
+services:
+  jitsusmon:
+    image: ${IMAGE_NAME}:${IMAGE_VERSION}
+    restart: unless-stopped
+    networks:
+      - jitsusmon_network
+    labels:
+      ## Traefik
+      - traefik.enable=true
+      ## Routers
+      - traefik.http.routers.jitsusmon.entrypoints=https
+      - traefik.http.routers.jitsusmon.rule=Host(`${ROOT_FQDN}`)
+      ## Services
+      # We add the sticky session configuration
+      - traefik.http.services.jitsusmon.loadbalancer.sticky=true
+      # We can also configure the cookie name and its options (useful for multiple services)
+      - traefik.http.services.jitsusmon.loadbalancer.sticky.cookie.name=jitsusmon_cookie
+      - traefik.http.services.jitsusmon.loadbalancer.sticky.cookie.httpOnly=true
