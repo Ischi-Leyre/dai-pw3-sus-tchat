@@ -500,6 +500,7 @@ The server sent a JSON array of message objects with this structure.
 
 #### Status codes
 - `200` OK
+- `304` Not Modified - when using cache with `If-Modified-Since` header
 - `400` Bad Request - invalid query parameter
 - `401` Unauthorized - not logged in
 - `404` Not Found - user not found (when filtering by username)
