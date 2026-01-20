@@ -2,6 +2,7 @@ package ch.heigvd.users;
 
 import ch.heigvd.messages.Message;
 
+import ch.heigvd.messages.MessagesController;
 import io.javalin.http.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,17 +12,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class UsersController {
     private final ConcurrentMap<Integer, User> users;
-    private final ConcurrentMap<Integer, Message> messages;
     private final ConcurrentMap<String, Integer> cookies;
+    private final MessagesController messagesController;
 
     private final AtomicInteger uniqueId = new AtomicInteger(1);
 
     public UsersController(ConcurrentMap<Integer, User> users,
-                           ConcurrentMap<Integer, Message> messages,
-                           ConcurrentMap<String, Integer> cookies) {
+                           ConcurrentMap<String, Integer> cookies,
+                           MessagesController messagesController) {
         this.users = users;
-        this.messages = messages;
         this.cookies = cookies;
+        this.messagesController = messagesController;
     }
 
     public void create(Context ctx) {
@@ -204,16 +205,8 @@ public class UsersController {
         }
 
         // ------------------------------------------------ DELETE ASSOCIATED MESSAGES -------------------------------
-        // Delete associated messages: collect keys first to avoid concurrency issues
-        List<Integer> messagesToDelete = new ArrayList<>();
-        for (Message message : messages.values()) {
-            if (message.userId().equals(usrId)) {
-                messagesToDelete.add(message.msgId());
-            }
-        }
-        for (Integer msgId : messagesToDelete) {
-            messages.remove(msgId);
-        }
+        // Delete associated messages
+        messagesController.deleteAllMessagesForUser(usrId);
 
         // ------------------------------------------------ DELETE USER & SESSION ------------------------------------
         users.remove(usrId);

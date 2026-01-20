@@ -225,7 +225,8 @@ public class MessagesController {
                     throw new BadRequestResponse("Invalid If-Modified-Since header format");
                 }
                 if (!lastModified.get().isAfter(ifModifiedSince)) {
-                    throw new NotModifiedResponse();
+                    ctx.status(HttpStatus.NOT_MODIFIED);
+                    return;
                 }
             }
         }
@@ -257,10 +258,6 @@ public class MessagesController {
 
         // ------------------------------------------------- Response --------------------------------------------------
         // Set Last-Modified header
-        ctx.header("Requested-At", DateTimeFormatter.RFC_1123_DATE_TIME
-                .withZone(ZoneOffset.UTC)
-                .format(Instant.now()));
-
         ctx.header("Last-Modified", DateTimeFormatter.RFC_1123_DATE_TIME
                 .withZone(ZoneOffset.UTC)
                 .format(lastModified.get()));
@@ -294,6 +291,26 @@ public class MessagesController {
 
         // ------------------------------------------------- Response --------------------------------------------------
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    public boolean deleteAllMessagesForUser(Integer userId) {
+        boolean deleted = false;
+        List<Integer> messagesToDelete = new ArrayList<>();
+
+        // Collect message IDs to delete
+        for (Message message : messages.values()) {
+            if (message.userId().equals(userId)) {
+                messagesToDelete.add(message.msgId());
+            }
+        }
+
+        // Delete collected messages
+        for (Integer msgId : messagesToDelete) {
+            messages.remove(msgId);
+            deleted = true;
+        }
+
+        return deleted;
     }
 
     // Function utils
