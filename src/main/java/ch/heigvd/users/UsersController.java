@@ -1,8 +1,9 @@
 package ch.heigvd.users;
 
+import ch.heigvd.messages.Message;
+
 import io.javalin.http.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -10,17 +11,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class UsersController {
     private final ConcurrentMap<Integer, User> users;
+    private final ConcurrentMap<Integer, Message> messages;
     private final ConcurrentMap<String, Integer> cookies;
 
     private final AtomicInteger uniqueId = new AtomicInteger(1);
 
-    public UsersController(ConcurrentMap<Integer, User> users, ConcurrentMap<String, Integer> cookies) {
+    public UsersController(ConcurrentMap<Integer, User> users,
+                           ConcurrentMap<Integer, Message> messages,
+                           ConcurrentMap<String, Integer> cookies) {
         this.users = users;
+        this.messages = messages;
         this.cookies = cookies;
     }
 
     public void create(Context ctx) {
-        // Parse and validate request body
+        // ------------------------------------------------ BODY VALIDATION ------------------------------------------
+        Map<?, ?> raw = ctx.bodyAsClass(Map.class);
+        if (raw == null || raw.isEmpty()) {
+            throw new BadRequestResponse("Request body is missing or empty");
+        }
+
+        // Champs autorisés
+        List<String> allowed = List.of("username", "email", "password");
+
+        for (Object k : raw.keySet()) {
+            if (!(k instanceof String key)) {
+                throw new BadRequestResponse("Invalid field type");
+            }
+
+            if (!allowed.contains(key)) {
+                throw new BadRequestResponse("Unexpected field: " + key);
+            }
+        }
+
+        // ------------------------------------------------- EXTRACT FIELDS ------------------------------------------
         User req =
                 ctx.bodyValidator(User.class)
                         .check(obj -> obj.username() != null, "Missing username")
@@ -28,7 +52,7 @@ public class UsersController {
                         .check(obj -> obj.password() != null, "Missing password")
                         .get();
 
-        // Check for conflicts
+        // ------------------------------------------------- CHECK CONFLICTS -----------------------------------------
         for (User user : users.values()) {
             if (req.email().equalsIgnoreCase(user.email()) ||
             req.username().equalsIgnoreCase(user.username())) {
@@ -36,7 +60,7 @@ public class UsersController {
             }
         }
 
-        // Create the new user
+        // -------------------------------------------------- CREATE USER --------------------------------------------
         User newUser =
                 new User(
                         uniqueId.getAndIncrement(),
@@ -47,29 +71,19 @@ public class UsersController {
 
         users.put(newUser.userId(), newUser);
 
+        // -------------------------------------------------- RESPONSE -----------------------------------------------
         ctx.status(HttpStatus.CREATED);
-
-        Map<String, Object> res = new HashMap<>();
-        res.put("userId", newUser.userId());
-        res.put("username", newUser.username());
-        res.put("email", newUser.email());
-
-        ctx.json(res);
+        ctx.json(newUser.toCreatedMap());
     }
 
     public void update(Context ctx) {
-        // session validation
-        String session = ctx.cookie("session_id");
-        if (session == null) {
-            throw new UnauthorizedResponse();
-        }
+        // ------------------------------------------------ COOKIE VALIDATION ----------------------------------------
+        String session = verifySessionId(ctx.cookie("session_id"));
+        Integer userId = getUserIdFromSession(session);
 
-        Integer userId = cookies.get(session);
-        if (userId == null) {
-            throw new UnauthorizedResponse();
-        }
-
-        if (!userId.equals(ctx.pathParamAsClass("userId", Integer.class).get())) {
+        // ------------------------------------------------ PATH PARAM VALIDATION ------------------------------------
+        Integer pathUserId = ctx.pathParamAsClass("userId", Integer.class).get();
+        if (!userId.equals(pathUserId)) {
             throw new ForbiddenResponse("Forbidden: You can only update your own user");
         }
 
@@ -77,19 +91,35 @@ public class UsersController {
             throw new NotFoundResponse();
         }
 
-        // read body as map and validate allowed fields
-        Map<?, ?> body = ctx.bodyAsClass(Map.class);
+        // ------------------------------------------------- BODY VALIDATION -----------------------------------------
+        Map<String, Object> body = ctx.bodyAsClass(Map.class);
         if (body == null || body.isEmpty()) {
-            throw new BadRequestResponse();
+            throw new BadRequestResponse("Request body is missing or empty");
         }
 
+        // Check for allowed fields
+        List<String> allowedFields = List.of("email", "password");
+        for (String key : body.keySet()) {
+            if (!allowedFields.contains(key)) {
+                throw new BadRequestResponse("Unexpected field: " + key);
+            }
+        }
+
+        // -------------------------------------------------- UPDATE USER --------------------------------------------
         User existingUser = users.get(userId);
 
-        String newEmail = body.containsKey("email") ? (String) body.get("email") : existingUser.email();
-        String newPassword = body.containsKey("password") ? (String) body.get("password") : existingUser.password();
+        Boolean[] hasFieldsToUpdate;
+        hasFieldsToUpdate = new Boolean[] {
+            body.containsKey("email"),
+            body.containsKey("password")
+        };
 
+        String newEmail = hasFieldsToUpdate[0] ? (String) body.get("email") : existingUser.email();
+        String newPassword = hasFieldsToUpdate[1] ? (String) body.get("password") : existingUser.password();
+
+        // Check for email conflict
         for (User user : users.values()) {
-            if (newEmail.equalsIgnoreCase(user.email())) {
+            if (!existingUser.userId().equals(user.userId()) && newEmail.equalsIgnoreCase(user.email())) {
                 throw new ConflictResponse("Conflict: Email already in use");
             }
         }
@@ -104,38 +134,30 @@ public class UsersController {
 
         users.replace(userId, updateUser);
 
-        Map<String, Object> res = new HashMap<>();
-        res.put("userId", updateUser.userId());
-        res.put("username", updateUser.username());
-        res.put("email", updateUser.email());
-
-        ctx.json(res);
+        // -------------------------------------------------- RESPONSE -----------------------------------------------
+        ctx.status(HttpStatus.OK);
+        ctx.json(updateUser.toEditedMap(hasFieldsToUpdate));
     }
 
     public void getOne(Context ctx) {
-        // Validate the cookie
-        String session = ctx.cookie("session_id");
-        if (session == null) {
-            throw new UnauthorizedResponse();
-        }
+        // ------------------------------------------------ PATH PARAM VALIDATION ------------------------------------
+        // Get id from path
+        Integer pathUserId = ctx.pathParamAsClass("userId", Integer.class).get();
 
-        // Get
-        Integer id = ctx.pathParamAsClass("userId", Integer.class).get();
-
-        User user = users.get(id);
+        // -------------------------------------------------- FETCH USER ---------------------------------------------
+        User user = users.get(pathUserId);
 
         if (user == null) {
             throw new NotFoundResponse();
         }
 
-        Map<String, Object> res = new HashMap<>();
-        res.put("userId", user.userId());
-        res.put("username", user.username());
-
-        ctx.json(res);
+        // -------------------------------------------------- RESPONSE -----------------------------------------------
+        ctx.status(HttpStatus.OK);
+        ctx.json(user.toListMap());
     }
 
     public void getMany(Context ctx) {
+        // ------------------------------------------------ QUERY PARAM VALIDATION -----------------------------------
         // validate that only 'username' query parameter is present
         for (String key : ctx.queryParamMap().keySet()) {
             if (!"username".equals(key)) {
@@ -143,44 +165,80 @@ public class UsersController {
             }
         }
 
-        // validate cookie
-        String session = ctx.cookie("session_id");
-        if (session == null) {
-            throw new UnauthorizedResponse();
-        }
-
+        // -------------------------------------------------- FETCH USERS --------------------------------------------
         String username = ctx.queryParam("username");
 
-        List<Map<String, Object>> list = new ArrayList<>();
+        List<Map<String,Object>> list = new ArrayList<>();
 
         for (User user : this.users.values()) {
             if (username != null && !user.username().equalsIgnoreCase(username)) {
                 continue;
             }
 
-            Map<String, Object> u = new HashMap<>();
-            u.put("userId", user.userId());
-            u.put("username", user.username());
-            list.add(u);
+            list.add(user.toListMap());
         }
 
+        // -------------------------------------------------- RESPONSE -----------------------------------------------
         if (list.isEmpty()) {
             ctx.status(HttpStatus.NO_CONTENT);
-            return;
+        } else {
+            ctx.status(HttpStatus.OK);
+            ctx.json(list);
         }
-
-        ctx.json(list);
     }
 
     public void delete(Context ctx) {
-        Integer id = ctx.pathParamAsClass("id", Integer.class).get();
+        // ------------------------------------------------- COOKIE VALIDATION ---------------------------------------
+        String session = verifySessionId(ctx.cookie("session_id"));
+        Integer userId = getUserIdFromSession(session);
 
-        if (!users.containsKey(id)) {
+        // ------------------------------------------------ PATH PARAM VALIDATION ------------------------------------
+        Integer usrId = ctx.pathParamAsClass("userId", Integer.class).get();
+
+        if (!users.containsKey(usrId)) {
             throw new NotFoundResponse();
         }
 
-        users.remove(id);
+        if (!userId.equals(usrId)) {
+            throw new ForbiddenResponse("Forbidden: You can only delete your own user");
+        }
 
+        // ------------------------------------------------ DELETE ASSOCIATED MESSAGES -------------------------------
+        // Delete associated messages: collect keys first to avoid concurrency issues
+        List<Integer> messagesToDelete = new ArrayList<>();
+        for (Message message : messages.values()) {
+            if (message.userId().equals(usrId)) {
+                messagesToDelete.add(message.msgId());
+            }
+        }
+        for (Integer msgId : messagesToDelete) {
+            messages.remove(msgId);
+        }
+
+        // ------------------------------------------------ DELETE USER & SESSION ------------------------------------
+        users.remove(usrId);
+        cookies.remove(session);
+
+        // -------------------------------------------------- RESPONSE -----------------------------------------------
+        ctx.removeCookie("session_id");
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    // Function utils
+    // Validate sessionId
+    String verifySessionId(String session) {
+        if (session == null || !cookies.containsKey(session)) {
+            throw new UnauthorizedResponse("Invalid or missing cookie");
+        }
+        return session;
+    }
+
+    // Get userId from sessionId
+    Integer getUserIdFromSession(String session) {
+        Integer userId = cookies.get(session);
+        if (userId == null) {
+            throw new UnauthorizedResponse("Invalid session");
+        }
+        return userId;
     }
 }
