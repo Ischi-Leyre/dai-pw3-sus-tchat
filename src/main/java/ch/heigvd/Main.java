@@ -6,8 +6,12 @@ import ch.heigvd.users.UsersController;
 import ch.heigvd.messages.Message;
 import ch.heigvd.messages.MessagesController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
+import io.javalin.json.JavalinJackson;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -16,7 +20,16 @@ public class Main {
     public static final int PORT = 8080;
 
     public static void main(String[] args) {
+        ObjectMapper mapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
         Javalin app = Javalin.create(config -> {
+
+            // ---------------- JSON Mapper ----------------
+            config.jsonMapper(new JavalinJackson(mapper, false));
+
+            // ---------------- Static Files ----------------
             config.staticFiles.add(staticFileConfig -> {
                 staticFileConfig.hostedPath = "/";
                 staticFileConfig.directory = "public";
@@ -31,8 +44,8 @@ public class Main {
 
         // Controllers
         AuthController authController = new AuthController(users, messages,cookies);
-        UsersController usersController = new UsersController(users,messages, cookies);
         MessagesController messagesController = new MessagesController(messages, users, cookies);
+        UsersController usersController = new UsersController(users, cookies, messagesController);
 
         // Users routes
         app.post  ("/users",          usersController::create);
