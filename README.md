@@ -4,10 +4,20 @@
 
 ## Tables of contents
 - [Description](#description)
+    - [Main features](#main-features)
+    - [Data structure](#data-structure-simplified)
+    - [Caching Strategy](#caching-strategy)
+    - [HTML page](#html-page)
 - [Clone and build](#clone-and-build)
     - [For Linux / MacOS](#for-linux--macos)
     - [For Windows](#for-windows)
-- [Usage](#usage)
+- [Docker compose](#docker-compose)
+    - [Container registry](#container-registry)
+    - [Rebuild image](#rebuild-image)
+- [Setup and Usage](#setup-and-usage)
+    - [Virtual Machine](#virtual-machine)
+    - [Dns Zone](#dns-zone)
+    - [Docker compose Usage](#docker-compose-usage)
 - [Utilisation IA](#utilisation-ia)
 - [Authors](#authors)
 - [References](#references)
@@ -42,6 +52,13 @@ The full API specification, including endpoints, request/response formats and ex
 > [!NOTE]
 > This project prioritizes clarity, simplicity and correctness over advanced security mechanisms, in accordance with the **KISS principle** and the educational objectives of the course.
 
+### Caching Strategy
+
+In this project we chose to use a validation model with last modified to implement our caching functionality. Only a GET request on the endpoint `message` with no query parameter was large enough to warrant caching, as it corresponds to a request for all recorded messages.
+
+### HTML page
+
+For this project, we added an HTML interface with the help of AI to more easily test our function. You can access our HTML interface at this link : [JitSUSmon](https://jitsusmon.duckdns.org/index.html)
 
 ## Clone and build
 These following instructions will help you to get a copy of the project up and running on your local machine for development and testing purposes.
@@ -90,10 +107,78 @@ mvnw.cmd clean package
 >
 > If you use the IDE IntelliJ, yon can directly run the configuration **make jar file application** to automatic build the project and generate the jar file.
 
-## Usage
+## Docker compose
 
-### Demo
-**TODO**
+### Container registry
+We published the image used for this project on GitHub Container Registry using the following commands:
+```shell
+# use token to log in
+docker login ghcr.io -u Arnaut
+docker tag jitsusmon:latest ghcr.io/ischi-leyre/jitsusmon:latest
+docker push ghcr.io/ischi-leyre/jitsusmon:latest
+```
+
+You can thus obtain the last updated image from GitHub Container Registry with:
+```shell
+docker pull ghcr.io/ischi-leyre/jitsusmon:latest
+```
+
+### Rebuild image
+
+If you need to rebuild the docker image to update it's app version, you can use the following command from the root of the repo:
+
+```shell
+docker build -t jitsusmon:latest .
+docker tag jitsusmon:latest ghcr.io/ischi-leyre/jitsusmon:latest
+```
+
+## Setup and Usage
+
+### Virtual Machine
+
+This project uses Microsoft Azure VM service to run the servers. You can learn how to install and configure the VM by following the instructions in the practice content section in our ssh and scp course : [VM setup tuto](https://github.com/heig-vd-dai-course/heig-vd-dai-course/tree/main/11.03-ssh-and-scp/01-course-material#install-and-configure-ssh-and-scp)
+
+
+To launch the servers you must first connect to the vm.
+
+```shell
+ssh ubuntu@20.203.232.38
+
+# if you have multiple ssh keys, use this command instead
+ssh -i .ssh/<ssh_key_name> ubuntu@20.203.232.38
+```
+### Dns Zone
+
+We used [duckdns](https://www.duckdns.org/) to claim the domain name for this project. tTo get a domain with duck dns you can simply login and chose a sub domain name (duckdns the default are A/AAAA records).
+
+You can test the DNS resolution with:
+```shell
+# Test the DNS resolution
+nslookup <domain name>
+```
+
+Once the DNS record has been created, you need to replace the current IP on DuckDNS with your VM IP. In our case, the final record produced the result below.
+
+![](Documents/images/duck_records.png)
+
+### Docker compose Usage
+
+From the Home directory of the VM you can then use the folwing command to launch the programe :
+
+```shell
+cd pw3/traefik
+docker compose up -d
+cd ../api
+docker compose up --scale jitsusmon=3 -d
+```
+> [!NOTE]
+>
+> If there is a newer version on GitHub Container Registry, go back a few steps to pull the image first.
+>
+> The certificate request can sometimes take quite a while.
+
+Once the containners are you can access our [traefik dashboard](https://traefik.jitsusmon.duckdns.org) as well as the [chat app](https://jitsusmon.duckdns.org/index.html).
+
 
 ## Utilisation IA
 - ChatGPT :
@@ -101,7 +186,8 @@ mvnw.cmd clean package
     - README: help for the integration HTML code (i.e. footer)
     - Code: generate the Java doc of Class / function.
     - API: proofreading and check with the example given.
-    - Main class: help for integretion of ressource with javalin configuration.
+    - Main class: help for integretion of ressource with javalin and ObjectMapper configuration.
+    - full web page implementation done by AI
 
 - GitHub Copilot:
     - commit: for the commits made in browsers, name and description
