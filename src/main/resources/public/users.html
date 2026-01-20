@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Users - JitSUSmon</title>
+    <script src="js/api_ui.js"></script>
+</head>
+<body>
+<h1>Users</h1>
+
+<!-- Create User -->
+<h2>Create User</h2>
+<form id="createUserForm">
+    <input name="username" placeholder="Username" required>
+    <input name="email" placeholder="Email" required>
+    <input name="password" placeholder="Password" type="password" required>
+    <button type="submit">Create</button>
+</form>
+
+<!-- List Users -->
+<h2>List Users</h2>
+<button onclick="listUsers()">Refresh List</button>
+<pre id="usersOutput"></pre>
+
+<!-- Delete User -->
+<h2>Delete User</h2>
+<form id="deleteUserForm">
+    <input name="userId" placeholder="User ID" required>
+    <button type="submit">Delete</button>
+</form>
+
+<script>
+    document.getElementById('createUserForm').onsubmit = async e => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {username: form.username.value, email: form.email.value, password: form.password.value};
+        await createUser(data, 'usersOutput');
+    };
+
+    document.getElementById('deleteUserForm').onsubmit = async e => {
+        e.preventDefault();
+        const userId = e.target.userId.value;
+        await deleteUser(userId, 'usersOutput');
+    };
+
+    async function listUsers() { await getUsers('usersOutput'); }
+</script>
+</body>
+</html>

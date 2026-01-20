@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Login / Logout - JitSUSmon</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 1rem; }
+        pre { background:#f7f7f7; padding:0.5rem; }
+    </style>
+</head>
+<body>
+<h1>Connexion</h1>
+
+<form id="loginForm">
+    <input name="username" placeholder="Username ou email" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button type="submit">Se connecter</button>
+</form>
+
+<button id="logoutBtn">Se déconnecter</button>
+<button id="checkProfileBtn">Vérifier profile</button>
+
+<h2>Résultat</h2>
+<pre id="output"></pre>
+
+<script>
+    const out = id => document.getElementById(id);
+
+    async function show(obj) {
+        out('output').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    document.getElementById('loginForm').onsubmit = async e => {
+        e.preventDefault();
+        const form = e.target;
+        const data = { username: form.username.value, password: form.password.value };
+
+        try {
+            const res = await fetch('/login', {
+                method: 'POST',
+                credentials: 'same-origin', // essentiel pour accepter Set-Cookie du serveur
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const text = await res.text();
+            // Si serveur renvoie JSON, tenter de parser
+            try { show(JSON.parse(text)); } catch { show({ status: res.status, body: text }); }
+        } catch (err) {
+            show({ error: err.message });
+        }
+    };
+
+    document.getElementById('logoutBtn').onclick = async () => {
+        try {
+            const res = await fetch('/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+            const text = await res.text();
+            try { show(JSON.parse(text)); } catch { show({ status: res.status, body: text }); }
+        } catch (err) { show({ error: err.message }); }
+    };
+
+    document.getElementById('checkProfileBtn').onclick = async () => {
+        try {
+            const res = await fetch('/profile', { credentials: 'same-origin' });
+            const text = await res.text();
+            try { show(JSON.parse(text)); } catch { show({ status: res.status, body: text }); }
+        } catch (err) { show({ error: err.message }); }
+    };
+</script>
+</body>
+</html>

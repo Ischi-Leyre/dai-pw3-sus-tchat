@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+        #messageInput { width: 80%; }
+        #sendButton { width: 18%; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Welcome to the Chat Application</h1>
+    <div id="accountMenu">
+        <button id="accountButton">Account</button>
+        <div id="accountOptions" style="display:none;">
+            <button id="signInButton">Sign In</button>
+            <button id="loginButton">Login</button>
+            <button id="profileButton" style="display:none;">Profile</button>
+            <button id="logoutButton" style="display:none;">Logout</button>
+        </div>
+    </div>
+</header>
+<div id="chat"></div>
+<input type="text" id="messageInput" placeholder="Type your message here...">
+<button id="sendButton">Send</button>
+
+<script>
+    const chatDiv = document.getElementById('chat');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+    const accountOptions = document.getElementById('accountOptions');
+    const profileButton = document.getElementById('profileButton');
+    const logoutButton = document.getElementById('logoutButton');
+
+    let isConnected = false; // Simulate connection status
+
+    document.getElementById('accountButton').onclick = function() {
+        accountOptions.style.display = accountOptions.style.display === 'none' ? 'block' : 'none';
+    };
+
+    sendButton.onclick = function() {
+        const message = messageInput.value;
+        if (message) {
+            postMessage(message);
+            messageInput.value = '';
+        } else {
+            alert('Please enter a message.');
+        }
+    };
+
+    function postMessage(message) {
+        fetch('/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                chatDiv.innerHTML += `<p>${data.message}</p>`;
+                chatDiv.scrollTop = chatDiv.scrollHeight; // Scroll to the bottom
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+    }
+
+    // Simulate user connection
+    function updateUserStatus() {
+        if (isConnected) {
+            profileButton.style.display = 'block';
+            logoutButton.style.display = 'block';
+            document.getElementById('signInButton').style.display = 'none';
+            document.getElementById('loginButton').style.display = 'none';
+        } else {
+            profileButton.style.display = 'none';
+            logoutButton.style.display = 'none';
+            document.getElementById('signInButton').style.display = 'block';
+            document.getElementById('loginButton').style.display = 'block';
+        }
+    }
+
+    updateUserStatus(); // Initial call to set user status
+</script>
+</body>
+</html>

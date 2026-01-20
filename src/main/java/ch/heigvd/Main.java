@@ -13,6 +13,7 @@ import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 
+import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -47,6 +48,9 @@ public class Main {
         MessagesController messagesController = new MessagesController(messages, users, cookies);
         UsersController usersController = new UsersController(users, cookies, messagesController);
 
+        // Create welcome admin and message
+        Welcome(users, messages);
+
         // Users routes
         app.post  ("/users",          usersController::create);
         app.patch ("/users/{userId}", usersController::update);
@@ -67,5 +71,31 @@ public class Main {
         app.delete("/messages/{msgId}", messagesController::delete);
 
         app.start(PORT);
+    }
+
+    private static void Welcome(ConcurrentMap<Integer, User> users, ConcurrentMap<Integer, Message> messages) {
+        // Create admin user
+        User admin = new User(
+            0,
+            "admin",
+            "admin@heig-vd.ch",
+            "adminpassword",
+            true
+        );
+
+        // Add admin user to users map
+        users.put(admin.userId(), admin);
+
+        // Create a welcome message
+        Message welcomeMessage = new Message(
+            0,
+            0,
+                Instant.now(),
+            null,
+            "Welcome to the JitSUSmon chat!\nFeel free to explore and connect with others. ;¬)"
+        );
+
+        // Add welcome message to messages map
+        messages.put(welcomeMessage.msgId(), welcomeMessage);
     }
 }
