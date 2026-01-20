@@ -48,12 +48,8 @@ The request body must contain a JSON body with the following properties:
 ##### command line example:
 ~~~bash
 curl -X POST https://jitsusmon.duckdns.org/users \
--H "Content-Type: application/json" \  
--d '{
-"username": "MasterMax", 
-"email": "max.muster@exemple.ch", 
-"password": "securePassword123"
-}'
+  -H "Content-Type: application/json" \
+  -d '{"username":"MasterMax","email":"max.muster@exemple.ch","password":"securePassword123"}'
 ~~~
 
 #### Response
@@ -94,8 +90,8 @@ The request body must contain a JSON body with the following properties (one or 
 ##### command line example:
 ~~~bash
 curl -b cookie.txt -X PATCH https://jitsusmon.duckdns.org/users/1 \
--H "Content-Type: application/json" \
--d '{"email": "new.email@exemple.com"}'
+  -H "Content-Type: application/json" \
+  -d '{"email":"new.email@exemple.com"}'
 ~~~
 >All provided fields are updated at once.
 
@@ -162,7 +158,7 @@ no more details are provided for privacy reasons.
 
 #### command line example:
 ~~~bash
-curl -b cookie.txt -X GET https://jitsusmon.duckdns.org/users?username=MasterMax
+curl -b cookie.txt -x GET https://jitsusmon.duckdns.org/users?username=MasterMax
 ~~~
 
 ---  
@@ -274,8 +270,8 @@ On success, a `session_id` session cookie is set.
 ##### command line example:
 ~~~bash
 curl -c cookie.txt -X POST https://jitsusmon.duckdns.org/login \
--H "Content-Type: application/json" \
--d '{"username": "MasterMax", "password": "securePassword123"}'
+  -H "Content-Type: application/json" \
+  -d '{"username":"MasterMax","password":"securePassword123"}'
 ~~~
 
 ---  
@@ -299,7 +295,7 @@ The response body is empty, and the `session_id` cookie is removed.
 
 ##### command line example:
 ~~~bash
-curl -c cookie.txt -X POST https://jitsusmon.duckdns.org/logout
+curl -b cookie.txt -X POST https://jitsusmon.duckdns.org/logout
 ~~~
 
 ---
@@ -331,7 +327,7 @@ The response body contains a JSON object with the following properties:
 
 ##### command line example:
 ~~~bash
-curl -c cookie.txt -X GET https://jitsusmon.duckdns.org/profile
+curl -b cookie.txt -X GET https://jitsusmon.duckdns.org/profile
 ~~~
 
 ---
@@ -375,8 +371,8 @@ JSON object example:
 ##### command line example:
 ~~~bash
 curl -b cookie.txt -X POST https://jitsusmon.duckdns.org/messages \
--H "Content-Type: application/json" \
--d '{"content": "Hello"}'
+  -H "Content-Type: application/json" \
+  -d '{"content":"Hello"}'
 ~~~
 
 ---
@@ -419,9 +415,9 @@ JSON object response example:
 
 ##### command line example:
 ~~~bash
-curl -b cookie.txt -X PATCH https://jitsusmon.duckdns.org/messages \
--H "Content-Type: application/json" \
--d '{"content": "New Text"}'
+curl -b cookie.txt -X PATCH https://jitsusmon.duckdns.org/messages/42 \
+  -H "Content-Type: application/json" \
+  -d '{"content":"New Text"}'
 ~~~
 
 ---
@@ -509,10 +505,16 @@ The server sent a JSON array of message objects with this structure.
 - `404` Not Found - user not found (when filtering by username)
 
 ##### command line example:
+**With query parameter: (without cache)**
 ~~~bash
 curl -b cookie.txt -X GET https://jitsusmon.duckdns.org/messages?username=MasterMax
 ~~~
-
+**With cache:**
+~~~bash
+curl -b cookie.txt \
+  -H 'If-Modified-Since: Tue, 01 Oct 2024 12:34:56 GMT' \
+  -X GET https://jitsusmon.duckdns.org/messages
+~~~
 ---
 
 ### Remove a message
@@ -534,7 +536,7 @@ Requires `session_id` cookie.
 
 ##### command line example:
 ~~~bash
-curl -b cookie.txt -X DELETE https://jitsusmon.duckdns.org/messages/42
+curl -b cookie.txt -X DELETE https://jitsusmon.duckdns.org/messages/2
 ~~~
 
 ---
@@ -542,7 +544,7 @@ curl -b cookie.txt -X DELETE https://jitsusmon.duckdns.org/messages/42
 ## Implementation notes
 - Two conceptual tables:
   - `User (UserId | Name | Role)`
-    - `Role`: `USER` / `ADMIN` (only `ADMIN` can delete/edit other users)
+    - `Role`: `USER` / `ADMIN` (only `ADMIN` can delete/edit other users `yet not implemented`)
       - default: `USER`
       - Server-side only, not exposed in API and cannot be modified via API
   - `Message (UserId | MsgId | postedDate | modifiedDate |Content)`
@@ -550,10 +552,6 @@ curl -b cookie.txt -X DELETE https://jitsusmon.duckdns.org/messages/42
       - Server-side only, not provided by client and cannot be modified via API
     - `modifiedDate`: automatically set when modified, if not, value: `null`
       - Server-side only, not provided by client and automatically updated by server when message is edited
-
-- Persistent storage files:
-  - `data/users.json`
-  - `data/messages.json`
 
 - Communication via HTTPS and JSON.
 - Errors return a minimal JSON body:
