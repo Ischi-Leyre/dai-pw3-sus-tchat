@@ -54,7 +54,7 @@ The full API specification, including endpoints, request/response formats and ex
 
 ### Caching Strategy
 
-In this project we chose to use a validation model with last modified to implement our caching functionality. Only a GET request on the endpoint `message` with no query parameter was large enough to warrant caching, as it corresponds to a request for all recorded messages.
+In this project we chose to use a validation model with last modified to implement our caching functionality. Only a GET request on the endpoint `messages` with no query parameter was large enough to warrant caching, as it corresponds to a request for all recorded messages.
 
 ### HTML page
 
