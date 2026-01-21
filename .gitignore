@@ -1,4 +1,3 @@
-### From 12.01-http-and-curl/02-solution
 ## IntelliJ IDEA
 # General
 .idea/libraries/
@@ -7,12 +6,14 @@
 .idea/jarRepositories.xml
 .idea/modules.xml
 .idea/workspace.xml
-.idea/
+.idea/copilot.data.migration.agent.xml
+.idea/copilot.data.migration.ask.xml
+.idea/copilot.data.migration.edit.xml
+.idea/remote-targets.xml
 *.iws
 *.iml
 *.ipr
-# Execptions
-!.idea/runConfiguration/
+.idea/.gitignore
 
 # Editor-based HTTP Client requests
 .idea/httpRequests/
