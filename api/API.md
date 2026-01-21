@@ -1,6 +1,5 @@
 # API – JitSUSmon Chat
 Protocol: HTTPS and JSON.
-Data are persisted server-side in `data/users.json` and `data/messages.json`.
 A simple authentication uses a `session_id` cookie containing the user's ID.
 
 ## Schemas

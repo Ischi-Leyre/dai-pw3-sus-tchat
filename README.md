@@ -29,8 +29,7 @@
 JitSUSmon is a small online chat web application developed as part of a practical engineering course.  
 The project focuses on **CRUD operations over HTTP** and on the understanding of how a web API can be designed, documented, deployed and tested using standard tools such as `curl`.
 
-The application exposes an **HTTP/HTTPS API** that allows clients to manage users and messages.  
-All data are persisted server-side using JSON files (`data/users.json` and `data/messages.json`).
+The application exposes an **HTTP/HTTPS API** that allows clients to manage users and messages.
 
 Authentication is handled using a **simple session mechanism based on HTTP cookies**.  
 After a successful login, the server sets a `session_id` cookie containing the authenticated user HASH (change every login), which is required to access protected endpoints.
